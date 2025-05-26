@@ -1,98 +1,219 @@
-import React, { useState, useRef } from 'react';
-import { View, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { getSocket } from '../socket/socketService';
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  View,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Text,
+  Modal,
+  Button,
+} from 'react-native';
+import { useWebSocket } from '../contexts/WebSocketContext';
+import { FontAwesome } from '@expo/vector-icons';
 
-const MessageInput = ({ conversationId, senderId, onSend }) => {
-    const [message, setMessage] = useState('');
-    const typingTimerRef = useRef(null);
-    const socket = getSocket();
+function MessageInput({ conversationId }) {
+  const [text, setText] = useState('');
+  const [typingTimer, setTypingTimer] = useState(null);
+  const { socket, currentUserId, getOtherParticipantId, emit } = useWebSocket();
+  const [isTyping, setIsTyping] = useState(false); // Local typing state
 
-    const handleTyping = () => {
-        // Clear previous timer
-        clearTimeout(typingTimerRef.current);
-        
-        // Emit typing started
-        socket.emit('typing', {
+  // Formatting (Not directly supported by TextInput)
+  // Consider using a more advanced text editor component if rich text is crucial
+  // For this basic conversion, we'll focus on plain text input.
+  // const [isBold, setIsBold] = useState(false);
+  // const [isItalic, setIsItalic] = useState(false);
+  // const [isUnderline, setIsUnderline] = useState(false);
+  // const [isStrikethrough, setIsStrikethrough] = useState(false);
+  // const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+  // const [linkText, setLinkText] = useState('');
+  // const [linkUrl, setLinkUrl] = useState('');
+
+  useEffect(() => {
+    if (socket) {
+      const messageSentHandler = (response) => {
+        console.log(response);
+        if (!response.success) {
+          console.error('Failed to send message');
+        }
+        setText(''); // Clear input after successful send
+      };
+
+      socket.on('message_sent', messageSentHandler);
+
+      return () => {
+        socket.off('message_sent', messageSentHandler);
+      };
+    }
+  }, [socket]);
+
+  const handleInputChange = (newText) => {
+    setText(newText);
+
+    // Typing indicator logic
+    if (socket && currentUserId) {
+      if (typingTimer) {
+        clearTimeout(typingTimer);
+      }
+
+      setIsTyping(true);
+      emit('typing', {
         conversation_id: conversationId,
-        user_id: senderId,
-        is_typing: true
-        });
-        
-        // Set timer to stop typing indicator after delay
-        typingTimerRef.current = setTimeout(() => {
-        socket.emit('typing', {
-            conversation_id: conversationId,
-            user_id: senderId,
-            is_typing: false
-        });
-        }, 2000);
-    };
+        user_id: currentUserId,
+        is_typing: true,
+      });
 
-    const handleSendMessage = () => {
-        if (message.trim() === '') return;
-        
-        // Send message via WebSocket
-        socket.emit('send_message', {
-        conversation_id: conversationId,
-        sender_id: senderId,
-        content: message
+      const timer = setTimeout(async () => {
+        setIsTyping(false);
+        emit('typing', {
+          conversation_id: conversationId,
+          user_id: currentUserId,
+          is_typing: false,
         });
-        
-        // Clear input field immediately for better UX
-        setMessage('');
-        
-        // Call onSend callback if provided
-        if (onSend) onSend(message);
-    };
+      }, 1000); // Adjust typing timeout as needed
+      setTypingTimer(timer);
+    }
+  };
 
-    return (
-        <View style={styles.container}>
-        <View style={styles.inputContainer}>
-            <TextInput
-            style={styles.input}
-            placeholder="Type a message..."
-            value={message}
-            onChangeText={(text) => {
-                setMessage(text);
-                handleTyping();
-            }}
-            multiline
-            />
-        </View>
-        <TouchableOpacity onPress={handleSendMessage} style={styles.sendButton}>
-            <Ionicons name="send" size={24} color="white" />
+  const sendMessage = () => {
+    if (text.trim() === '' || !socket) return;
+
+    socket.emit('send_message', {
+      conversation_id: conversationId,
+      sender_id: currentUserId,
+      content: text,
+    });
+    setText('');
+  };
+
+  // Formatting is significantly different in React Native
+  // We'll omit the rich text formatting for this basic conversion using TextInput.
+  // If rich text editing is required, you would typically use a third-party library
+  // like react-native-webview to embed a web-based editor or explore native rich text editors.
+
+  // const handleFormat = (format) => {
+  //   // ... (rich text formatting logic - not directly applicable to TextInput)
+  // };
+
+  // const handleInsertLink = () => {
+  //   // ... (link insertion logic - not directly applicable to TextInput)
+  // };
+
+  // const handleCloseLinkModal = () => {
+  //   // ... (link modal closing logic)
+  // };
+
+  const handleKeyDown = (e) => {
+    if (e.nativeEvent.key === 'Enter') {
+      sendMessage();
+    }
+  };
+
+  return (
+    <View style={styles.messageInputArea}>
+      {isTyping && <Text style={styles.typingIndicator}>Typing...</Text>}
+      {/* Formatting toolbar - basic buttons without rich text functionality */}
+      <View style={styles.formattingToolbar}>
+        <TouchableOpacity style={styles.formatBtn} onPress={() => { /* Handle bold (if implementing) */ }}>
+          <FontAwesome name="bold" size={20} color="black" />
         </TouchableOpacity>
+        <TouchableOpacity style={styles.formatBtn} onPress={() => { /* Handle italic (if implementing) */ }}>
+          <FontAwesome name="italic" size={20} color="black" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.formatBtn} onPress={() => { /* Handle underline (if implementing) */ }}>
+          <FontAwesome name="underline" size={20} color="black" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.formatBtn} onPress={() => { /* Handle strikethrough (if implementing) */ }}>
+          <FontAwesome name="strikethrough" size={20} color="black" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.formatBtn} onPress={() => { /* Handle link (if implementing modal) */ }}>
+          <FontAwesome name="link" size={20} color="black" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
+          <FontAwesome name="paper-plane" size={20} color="white" />
+        </TouchableOpacity>
+      </View>
+
+      <TextInput
+        style={styles.messageInput}
+        placeholder="Write a message..."
+        value={text}
+        onChangeText={handleInputChange}
+        onKeyPress={handleKeyDown}
+        multiline={true}
+        blurOnSubmit={false} // Keep keyboard open on Enter (if you don't want to send immediately)
+        returnKeyType="send" // Change Enter button text to "Send"
+        onSubmitEditing={sendMessage} // Send message on "Send" button press
+      />
+
+      {/* Link Modal (if you were to implement a custom one) */}
+      {/* <Modal visible={isLinkModalOpen} animationType="slide" transparent={true}>
+        <View style={styles.linkModal}>
+          <Text>Enter Link URL:</Text>
+          <TextInput
+            style={styles.linkInput}
+            placeholder="https://example.com"
+            value={linkUrl}
+            onChangeText={setLinkUrl}
+          />
+          <View style={styles.linkModalButtons}>
+            <Button title="Insert" onPress={handleInsertLink} />
+            <Button title="Cancel" onPress={handleCloseLinkModal} />
+          </View>
         </View>
-    );
-};
+      </Modal> */}
+    </View>
+  );
+}
 
 const styles = StyleSheet.create({
-    container: {
-        flexDirection: 'row',
-        padding: 10,
-        alignItems: 'center',
-        backgroundColor: '#f5f5f5',
-    },
-    inputContainer: {
-        flex: 1,
-        backgroundColor: '#fff',
-        borderRadius: 20,
-        marginRight: 10,
-        paddingHorizontal: 15,
-    },
-    input: {
-        padding: 10,
-        maxHeight: 100,
-    },
-    sendButton: {
-        backgroundColor: '#0084ff',
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
+  messageInputArea: {
+    padding: 8,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border.messaging,
+  },
+  typingIndicator: {
+    fontSize: 12,
+    color: theme.colors.text.gray,
+    marginBottom: 4,
+  },
+  formattingToolbar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 4,
+  },
+  formatBtn: {
+    padding: 8,
+  },
+  sendButton: {
+    backgroundColor: theme.colors.primary,
+    padding: 8,
+    borderRadius: 20,
+  },
+  messageInput: {
+    height: 40,
+    padding: 8,
+    borderColor: theme.colors.border.messaging,
+    borderWidth: 1,
+    borderRadius: 10,
+  },
+  linkModal: {
+    backgroundColor: theme.colors.secondary,
+    padding: 16,
+    borderRadius: 10,
+    margin: 20,
+  },
+  linkInput: {
+    height: 40,
+    padding: 8,
+    borderColor: theme.colors.border.messaging,
+    borderWidth: 1,
+    borderRadius: 10,
+  },
+  linkModalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
 });
 
 export default MessageInput;

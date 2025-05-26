@@ -1,62 +1,55 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 
-const Notification = ({ message, type, visible, onHide }) => {
-    const fadeAnim = useRef(new Animated.Value(0)).current;
+function Notification({ message, type, duration = 3000 }) {
+  const [show, setShow] = useState(true);
 
-    useEffect(() => {
-        if (visible) {
-            Animated.sequence([
-                Animated.timing(fadeAnim, {
-                toValue: 1,
-                duration: 300,
-                useNativeDriver: true,
-                }),
-                Animated.delay(2000),
-                Animated.timing(fadeAnim, {
-                toValue: 0,
-                duration: 300,
-                useNativeDriver: true,
-                })
-            ]).start(() => {
-                if (onHide) onHide();
-            });
-        }
-    }, [visible, fadeAnim, onHide]);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShow(false);
+    }, duration);
 
-    if (!visible) return null;
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [duration]);
 
-    return (
-        <Animated.View style={[
-        styles.container,
-        { opacity: fadeAnim },
-        type === 'success' ? styles.success : styles.error
-        ]}>
-        <Text style={styles.text}>{message}</Text>
-        </Animated.View>
-    );
-};
+  if (!show) return null;
+
+  const notificationStyle = [styles.notificationMessage, styles[type], styles.show];
+
+  return (
+    <View style={notificationStyle}>
+      <Text>{message}</Text>
+    </View>
+  );
+}
 
 const styles = StyleSheet.create({
-    container: {
-        position: 'absolute',
-        top: 20,
-        left: 20,
-        right: 20,
-        padding: 10,
-        borderRadius: 5,
-        zIndex: 1000,
-    },
-    success: {
-        backgroundColor: '#4CAF50',
-    },
-    error: {
-        backgroundColor: '#F44336',
-    },
-    text: {
-        color: '#fff',
-        textAlign: 'center',
-    },
+  notificationMessage: {
+    padding: 16,
+    borderRadius: 8,
+    margin: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  success: {
+    backgroundColor: '#34C759',
+  },
+  error: {
+    backgroundColor: '#FF3B30',
+  },
+  info: {
+    backgroundColor: '#007AFF',
+  },
+  show: {
+    // In React Native, we don't need to explicitly show or hide an element.
+    // Instead, we can conditionally render it.
+    // So, this style is not necessary.
+  },
 });
 
 export default Notification;
