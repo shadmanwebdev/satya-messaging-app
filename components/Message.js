@@ -6,7 +6,6 @@ import theme from '../theme/theme';
 function Message({ message, isCurrentUser }) {
   const messageStyle = isCurrentUser ? styles.sent : styles.received;
   const messageTextStyle = isCurrentUser ? styles.sentText : styles.receivedText;
-  const dateTimeContainerStyle = isCurrentUser ? styles.sentDateTimeContainer : styles.receivedDateTimeContainer;
 
   return (
     <View style={[styles.message, messageStyle]}>
@@ -26,7 +25,10 @@ function Message({ message, isCurrentUser }) {
           <View style={styles.messageTime}>
             <Text style={styles.timeText}>{formatTime(message.dateObj?.time)}</Text>
           </View>
-          <Text style={[styles.messageContent, messageTextStyle]} dangerouslySetInnerHTML={{ __html: message.cleanContent }} />
+          {/* Removed dangerouslySetInnerHTML as it's not supported in React Native */}
+          <Text style={[styles.messageContent, messageTextStyle]}>
+            {message.cleanContent || message.content}
+          </Text>
         </View>
       </View>
     </View>
@@ -35,60 +37,68 @@ function Message({ message, isCurrentUser }) {
 
 const styles = StyleSheet.create({
   message: {
-    marginVertical: 4,
-    padding: 8,
+    marginVertical: theme.spacing.xs,
+    padding: theme.spacing.sm,
     maxWidth: '80%',
   },
   sent: {
     alignSelf: 'flex-end',
     backgroundColor: theme.colors.primary,
-    borderRadius: 10,
+    borderRadius: theme.borderRadius.external2,
+    elevation: theme.elevation.sm, // Added elevation for sent messages
   },
   received: {
     alignSelf: 'flex-start',
     backgroundColor: theme.colors.secondary,
-    borderRadius: 10,
+    borderRadius: theme.borderRadius.external2,
     borderWidth: 1,
     borderColor: theme.colors.border.messaging,
+    elevation: theme.elevation.xs, // Added elevation for received messages
   },
   topRow: {
     justifyContent: 'center',
     alignItems: 'center',
   },
   messageMeta: {
-    // Add styles here if needed
+    // Container for message metadata
   },
   messageDatetime: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 4,
+    paddingVertical: theme.spacing.xs,
+    marginBottom: theme.spacing.xs,
   },
   line: {
     height: 1,
     backgroundColor: theme.colors.border.messaging,
     flex: 1,
-    marginHorizontal: 8,
+    marginHorizontal: theme.spacing.sm,
   },
   messageDate: {
     fontSize: 12,
     color: theme.colors.text.gray,
+    fontWeight: '500',
+    paddingHorizontal: theme.spacing.sm,
   },
   bottomRow: {
-    // Add styles here if needed
+    // Container for message content
   },
   messageColLeft: {
-    // Add styles here if needed
+    // Container for time and content
   },
   messageTime: {
-    // Add styles here if needed
+    marginBottom: theme.spacing.xs,
   },
   timeText: {
     fontSize: 10,
     color: theme.colors.text.gray,
+    fontStyle: 'italic',
   },
   messageContent: {
     fontSize: 14,
+    lineHeight: 18,
+    paddingVertical: theme.spacing.xs,
   },
   sentText: {
     color: theme.colors.secondary,
@@ -97,6 +107,5 @@ const styles = StyleSheet.create({
     color: theme.colors.text.dark,
   },
 });
-
 
 export default Message;

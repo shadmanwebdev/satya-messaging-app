@@ -53,22 +53,23 @@ const theme = {
     card: 8,
   },
   
-  // Shadows
-  shadows: {
-    primary: {
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 2,
-    },
-    secondary: {
-      shadowColor: 'rgba(0, 18, 46, 0.16)',
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.8,
-      shadowRadius: 18,
-      elevation: 10,
-    },
+  // Elevations for Android shadows
+  elevation: {
+    none: 0,
+    xs: 1,
+    sm: 2,
+    md: 4,
+    lg: 8,
+    xl: 12,
+    xxl: 16,
+    
+    // Component-specific elevations
+    card: 2,
+    button: 4,
+    modal: 8,
+    fab: 6,        // Floating Action Button
+    appBar: 4,
+    drawer: 16,
   },
 };
 

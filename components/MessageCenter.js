@@ -152,7 +152,7 @@ function MessageCenter() {
                 uri: 'https://satya.pl/serve_image.php?photo=Lukrecja_bae1734781188.png',
               }}
             />
-            <Text>
+            <Text style={styles.conversationsBtnText}>
               {unreadCount > 0
                 ? `${unreadCount} unread message(s)`
                 : 'No unread messages'}
@@ -168,19 +168,18 @@ function MessageCenter() {
                       style={styles.userSearch}
                       placeholder="Search username or email..."
                       value={searchTerm}
-                      onChangeText={handleSearch} // Changed from onChange
-                      placeholderTextColor="#999"
+                      onChangeText={handleSearch}
+                      placeholderTextColor={theme.colors.text.gray3}
                     />
                     <FontAwesome 
                       name="search" 
                       size={20} 
-                      color="#666" 
+                      color={theme.colors.text.gray2}
                       style={styles.searchIcon} 
                     />
                   </View>
                 </View>
 
-                {/* Using React Native ScrollView with proper styling */}
                 <ScrollView 
                   style={styles.unreadInnerDiv}
                   showsVerticalScrollIndicator={true}
@@ -221,7 +220,6 @@ function MessageCenter() {
                         <View style={styles.msgColRight}>
                           <View style={styles.msgContent}>
                             <Text style={styles.conversationUsername}>{username}</Text>
-                            {/* Note: dangerouslySetInnerHTML doesn't exist in React Native */}
                             <Text style={styles.lastMessage} numberOfLines={2}>
                               {lastMessage.replace(/<[^>]*>/g, '')} {/* Strip HTML tags */}
                             </Text>
@@ -307,16 +305,21 @@ const styles = StyleSheet.create({
   conversationsBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    backgroundColor: '#fff',
+    padding: theme.spacing.md,
+    backgroundColor: theme.colors.secondary,
     borderBottomWidth: 1,
-    borderBottomColor: '#e1e1e1',
+    borderBottomColor: theme.colors.border.primary,
+    elevation: theme.elevation.xs, // Added subtle elevation
+  },
+  conversationsBtnText: {
+    fontSize: 16,
+    color: theme.colors.text.dark,
   },
   avatar: {
     width: 45,
     height: 45,
     borderRadius: 22.5,
-    marginRight: 12,
+    marginRight: theme.spacing.md,
   },
   avatarSmall: {
     width: 50,
@@ -324,57 +327,57 @@ const styles = StyleSheet.create({
     borderRadius: 25,
   },
   messageDropdown: {
-    backgroundColor: '#fff',
-    padding: 12,
-    borderColor: '#e1e1e1',
+    backgroundColor: theme.colors.secondary,
+    padding: theme.spacing.md,
+    borderColor: theme.colors.border.primary,
     borderWidth: 1,
-    borderRadius: 8,
-    elevation: 3, // Android shadow
-    shadowColor: '#000', // iOS shadow
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    borderRadius: theme.borderRadius.external2,
+    elevation: theme.elevation.lg, // Prominent dropdown shadow
+    marginTop: theme.spacing.xs,
   },
   unreadMessages: {
     // Container for messages
   },
   searchUser: {
-    marginBottom: 12,
+    marginBottom: theme.spacing.md,
   },
   searchUserInner: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 8,
-    borderColor: '#e1e1e1',
+    padding: theme.spacing.sm,
+    borderColor: theme.colors.border.primary,
     borderWidth: 1,
-    borderRadius: 8,
-    backgroundColor: '#f5f5f5',
+    borderRadius: theme.borderRadius.external2,
+    backgroundColor: theme.colors.background.gray,
+    elevation: theme.elevation.xs, // Subtle elevation for search input
   },
   userSearch: {
     flex: 1,
     height: 40,
-    paddingHorizontal: 8,
+    paddingHorizontal: theme.spacing.sm,
     fontSize: 16,
+    color: theme.colors.text.dark,
   },
   searchIcon: {
-    marginLeft: 8,
+    marginLeft: theme.spacing.sm,
   },
   unreadInnerDiv: {
-    maxHeight: 300, // Set max height for ScrollView
-    backgroundColor: '#fff',
+    maxHeight: 300,
+    backgroundColor: theme.colors.secondary,
   },
   unreadMessage: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
+    padding: theme.spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: '#e1e1e1',
+    borderBottomColor: theme.colors.border.primary,
+    backgroundColor: theme.colors.secondary,
+    elevation: theme.elevation.xs, // Light elevation for each message item
+    marginVertical: 1, // Small margin to show elevation
+    borderRadius: theme.borderRadius.external2,
   },
   msgCol1: {
-    marginRight: 12,
+    marginRight: theme.spacing.md,
   },
   msgPhoto: {
     // Photo container
@@ -391,24 +394,25 @@ const styles = StyleSheet.create({
   conversationUsername: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
+    color: theme.colors.text.dark,
+    marginBottom: theme.spacing.xs,
   },
   lastMessage: {
     fontSize: 14,
-    color: '#666',
+    color: theme.colors.text.gray2,
   },
   unreadCountBadge: {
-    backgroundColor: '#007bff',
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    backgroundColor: theme.colors.primary,
+    borderRadius: theme.borderRadius.button / 2,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.xs,
     minWidth: 20,
     alignItems: 'center',
     justifyContent: 'center',
+    elevation: theme.elevation.sm, // Badge elevation
   },
   unreadCountText: {
-    color: '#fff',
+    color: theme.colors.secondary,
     fontSize: 12,
     fontWeight: 'bold',
   },

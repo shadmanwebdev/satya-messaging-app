@@ -7,15 +7,13 @@ const mysql = require('mysql2/promise'); // Add MySQL for database operations
 const http = require('http');
 const useHttps = process.env.USE_HTTPS === 'true';
 
-
 // Create an instance of Express
 const app = express();
 
 // SSL options
 const options = {
-    key: fs.readFileSync('/etc/letsencrypt/live/vps-08e5f5ed.vps.ovh.net/privkey.pem'),
-    cert: fs.readFileSync('/etc/letsencrypt/live/vps-08e5f5ed.vps.ovh.net/cert.pem'),
-    ca: fs.readFileSync('/etc/letsencrypt/live/vps-08e5f5ed.vps.ovh.net/chain.pem')
+    key: fs.readFileSync('/etc/letsencrypt/live/satya.pl/privkey.pem'),
+    cert: fs.readFileSync('/etc/letsencrypt/live/satya.pl/fullchain.pem')
 };
 
 // Create  server
@@ -45,7 +43,7 @@ let userSockets = {};
 // Handle WebSocket connections
 io.on('connection', async (socket) => {
     console.log('A user connected: ', socket.id);
-    
+
     // Register user
     socket.on('register_user', (user_id) => {
         userSockets[user_id] = socket.id;

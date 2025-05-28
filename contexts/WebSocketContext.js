@@ -44,14 +44,6 @@ export function WebSocketProvider({ children }) {
       };
 
       fetchUserId();
-
-      // Site UUID (assuming it's available somehow in your React Native app)
-      // It might come from app configuration, a local state, or another API call
-      const siteUUID = 'YOUR_SITE_UUID'; // Replace with your actual way of getting the UUID
-      if (siteUUID) {
-        socketInstance.emit('register_site', siteUUID);
-        console.log('Emitting register_site event with UUID:', siteUUID);
-      }
     });
 
     socketInstance.on('disconnect', () => {

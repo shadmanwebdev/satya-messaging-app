@@ -63,7 +63,7 @@ function MessageList({ messages: initialMessages, conversationId }) {
   const processedMessages = messages.map((message, index) => {
     const dateObj = compareDateTimes(
       message.sent_at,
-      index > 0 ? messages[index - 1].sent_at : null // React Native doesn't use cookies in the same way
+      index > 0 ? messages[index - 1].sent_at : null
     );
 
     return {
@@ -76,26 +76,43 @@ function MessageList({ messages: initialMessages, conversationId }) {
   });
 
   return (
-    <ScrollView
-      style={styles.messageContainer}
-      contentContainerStyle={styles.messageList}
-      ref={scrollViewRef}
-      onContentSizeChange={() => scrollToBottom()} // Scroll on content size change
-    >
-      {processedMessages.map((message, index) => (
-        <Message
-          key={`${message.conversation_id}-${message.sender_id}-${index}`}
-          message={message}
-          isCurrentUser={message.sender_id == currentUserId}
-        />
-      ))}
-      {/* Typing indicator will be handled in ConversationTab or a parent */}
-    </ScrollView>
+    <View style={styles.containerWrapper}>
+      <ScrollView
+        style={styles.messageContainer}
+        contentContainerStyle={styles.messageList}
+        ref={scrollViewRef}
+        onContentSizeChange={() => scrollToBottom()} // Scroll on content size change
+        showsVerticalScrollIndicator={false} // Hide scrollbar for cleaner look
+        bounces={true} // Enable bounce effect
+        alwaysBounceVertical={false} // Only bounce when content exceeds container
+      >
+        {processedMessages.map((message, index) => (
+          <Message
+            key={`${message.conversation_id}-${message.sender_id}-${index}`}
+            message={message}
+            isCurrentUser={message.sender_id == currentUserId}
+          />
+        ))}
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  
+  containerWrapper: {
+    flex: 1,
+    backgroundColor: theme.colors.background.chat, // Chat background color
+  },
+  messageContainer: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+  messageList: {
+    flexGrow: 1,
+    padding: theme.spacing.sm,
+    paddingBottom: theme.spacing.md, // Extra bottom padding for last message
+    justifyContent: 'flex-end', // Align messages to bottom when few messages
+  },
 });
 
 export default MessageList;

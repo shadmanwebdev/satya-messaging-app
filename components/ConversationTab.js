@@ -144,6 +144,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.secondary,
     borderRadius: theme.borderRadius.external,
     padding: theme.spacing.sm,
+    elevation: theme.elevation.modal, // Added elevation for conversation tab shadow
   },
   header: {
     flexDirection: 'row',
@@ -167,9 +168,17 @@ const styles = StyleSheet.create({
   minimizeButton: {
     marginLeft: 'auto',
     marginRight: theme.spacing.sm,
+    padding: theme.spacing.xs, // Added padding for better touch area
+    elevation: theme.elevation.xs, // Light elevation for button
+    backgroundColor: theme.colors.secondary,
+    borderRadius: theme.borderRadius.external2,
   },
   closeButton: {
     marginRight: theme.spacing.sm,
+    padding: theme.spacing.xs, // Added padding for better touch area
+    elevation: theme.elevation.xs, // Light elevation for button
+    backgroundColor: theme.colors.secondary,
+    borderRadius: theme.borderRadius.external2,
   },
   body: {
     flex: 1,
@@ -188,6 +197,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0f0f0',
     borderTopWidth: 1,
     borderTopColor: theme.colors.border.messaging,
+    elevation: theme.elevation.xs, // Added light elevation for typing indicator
   },
   minimizedTab: {
     flexDirection: 'row',
@@ -196,6 +206,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.secondary,
     padding: theme.spacing.sm,
     borderRadius: theme.borderRadius.external,
+    elevation: theme.elevation.card, // Added elevation for minimized tab
   },
   minimizedAvatar: {
     width: 24,
@@ -210,6 +221,10 @@ const styles = StyleSheet.create({
   },
   minimizedCloseButton: {
     marginLeft: 'auto',
+    padding: theme.spacing.xs, // Added padding for better touch area
+    elevation: theme.elevation.xs, // Light elevation for button
+    backgroundColor: theme.colors.secondary,
+    borderRadius: theme.borderRadius.external2,
   },
 });
 

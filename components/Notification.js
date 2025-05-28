@@ -30,11 +30,9 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 8,
     margin: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    // ✅ Use boxShadow for React Native Web compatibility
+    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.25)',
+    elevation: 5, // Keep for Android
   },
   success: {
     backgroundColor: '#34C759',

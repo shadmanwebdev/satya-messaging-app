@@ -10,23 +10,13 @@ import {
 } from 'react-native';
 import { useWebSocket } from '../contexts/WebSocketContext';
 import { FontAwesome } from '@expo/vector-icons';
+import theme from '../theme/theme';
 
 function MessageInput({ conversationId }) {
   const [text, setText] = useState('');
   const [typingTimer, setTypingTimer] = useState(null);
   const { socket, currentUserId, getOtherParticipantId, emit } = useWebSocket();
   const [isTyping, setIsTyping] = useState(false); // Local typing state
-
-  // Formatting (Not directly supported by TextInput)
-  // Consider using a more advanced text editor component if rich text is crucial
-  // For this basic conversion, we'll focus on plain text input.
-  // const [isBold, setIsBold] = useState(false);
-  // const [isItalic, setIsItalic] = useState(false);
-  // const [isUnderline, setIsUnderline] = useState(false);
-  // const [isStrikethrough, setIsStrikethrough] = useState(false);
-  // const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
-  // const [linkText, setLinkText] = useState('');
-  // const [linkUrl, setLinkUrl] = useState('');
 
   useEffect(() => {
     if (socket) {
@@ -85,23 +75,6 @@ function MessageInput({ conversationId }) {
     setText('');
   };
 
-  // Formatting is significantly different in React Native
-  // We'll omit the rich text formatting for this basic conversion using TextInput.
-  // If rich text editing is required, you would typically use a third-party library
-  // like react-native-webview to embed a web-based editor or explore native rich text editors.
-
-  // const handleFormat = (format) => {
-  //   // ... (rich text formatting logic - not directly applicable to TextInput)
-  // };
-
-  // const handleInsertLink = () => {
-  //   // ... (link insertion logic - not directly applicable to TextInput)
-  // };
-
-  // const handleCloseLinkModal = () => {
-  //   // ... (link modal closing logic)
-  // };
-
   const handleKeyDown = (e) => {
     if (e.nativeEvent.key === 'Enter') {
       sendMessage();
@@ -110,109 +83,164 @@ function MessageInput({ conversationId }) {
 
   return (
     <View style={styles.messageInputArea}>
-      {isTyping && <Text style={styles.typingIndicator}>Typing...</Text>}
-      {/* Formatting toolbar - basic buttons without rich text functionality */}
-      <View style={styles.formattingToolbar}>
-        <TouchableOpacity style={styles.formatBtn} onPress={() => { /* Handle bold (if implementing) */ }}>
-          <FontAwesome name="bold" size={20} color="black" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.formatBtn} onPress={() => { /* Handle italic (if implementing) */ }}>
-          <FontAwesome name="italic" size={20} color="black" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.formatBtn} onPress={() => { /* Handle underline (if implementing) */ }}>
-          <FontAwesome name="underline" size={20} color="black" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.formatBtn} onPress={() => { /* Handle strikethrough (if implementing) */ }}>
-          <FontAwesome name="strikethrough" size={20} color="black" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.formatBtn} onPress={() => { /* Handle link (if implementing modal) */ }}>
-          <FontAwesome name="link" size={20} color="black" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
-          <FontAwesome name="paper-plane" size={20} color="white" />
+      {isTyping && (
+        <View style={styles.typingIndicatorContainer}>
+          <Text style={styles.typingIndicator}>Typing...</Text>
+        </View>
+      )}
+      
+      {/* Input container with send button */}
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={styles.messageInput}
+          placeholder="Write a message..."
+          placeholderTextColor={theme.colors.text.gray}
+          value={text}
+          onChangeText={handleInputChange}
+          onKeyPress={handleKeyDown}
+          multiline={true}
+          maxLength={1000} // Reasonable character limit
+          blurOnSubmit={false}
+          returnKeyType="send"
+          onSubmitEditing={sendMessage}
+        />
+        
+        <TouchableOpacity 
+          style={[
+            styles.sendButton, 
+            !text.trim() && styles.sendButtonDisabled
+          ]} 
+          onPress={sendMessage}
+          disabled={!text.trim()}
+        >
+          <FontAwesome 
+            name="paper-plane" 
+            size={18} 
+            color={!text.trim() ? theme.colors.text.gray : theme.colors.secondary} 
+          />
         </TouchableOpacity>
       </View>
 
-      <TextInput
-        style={styles.messageInput}
-        placeholder="Write a message..."
-        value={text}
-        onChangeText={handleInputChange}
-        onKeyPress={handleKeyDown}
-        multiline={true}
-        blurOnSubmit={false} // Keep keyboard open on Enter (if you don't want to send immediately)
-        returnKeyType="send" // Change Enter button text to "Send"
-        onSubmitEditing={sendMessage} // Send message on "Send" button press
-      />
-
-      {/* Link Modal (if you were to implement a custom one) */}
-      {/* <Modal visible={isLinkModalOpen} animationType="slide" transparent={true}>
-        <View style={styles.linkModal}>
-          <Text>Enter Link URL:</Text>
-          <TextInput
-            style={styles.linkInput}
-            placeholder="https://example.com"
-            value={linkUrl}
-            onChangeText={setLinkUrl}
-          />
-          <View style={styles.linkModalButtons}>
-            <Button title="Insert" onPress={handleInsertLink} />
-            <Button title="Cancel" onPress={handleCloseLinkModal} />
-          </View>
-        </View>
-      </Modal> */}
+      {/* Optional: Formatting toolbar - uncomment if needed */}
+      {/* 
+      <View style={styles.formattingToolbar}>
+        <TouchableOpacity style={styles.formatBtn} onPress={() => {}}>
+          <FontAwesome name="bold" size={16} color={theme.colors.text.dark} />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.formatBtn} onPress={() => {}}>
+          <FontAwesome name="italic" size={16} color={theme.colors.text.dark} />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.formatBtn} onPress={() => {}}>
+          <FontAwesome name="underline" size={16} color={theme.colors.text.dark} />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.formatBtn} onPress={() => {}}>
+          <FontAwesome name="strikethrough" size={16} color={theme.colors.text.dark} />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.formatBtn} onPress={() => {}}>
+          <FontAwesome name="link" size={16} color={theme.colors.text.dark} />
+        </TouchableOpacity>
+      </View>
+      */}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   messageInputArea: {
-    padding: 8,
+    backgroundColor: theme.colors.secondary,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
     borderTopWidth: 1,
     borderTopColor: theme.colors.border.messaging,
+    elevation: theme.elevation.md, // Elevated input area
+  },
+  typingIndicatorContainer: {
+    marginBottom: theme.spacing.xs,
+    paddingHorizontal: theme.spacing.sm,
   },
   typingIndicator: {
     fontSize: 12,
     color: theme.colors.text.gray,
-    marginBottom: 4,
+    fontStyle: 'italic',
   },
-  formattingToolbar: {
+  inputContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 4,
+    alignItems: 'flex-end',
+    backgroundColor: theme.colors.secondary,
+    borderRadius: theme.borderRadius.external,
+    elevation: theme.elevation.xs, // Input container elevation
+    paddingHorizontal: theme.spacing.xs,
+    paddingVertical: theme.spacing.xs,
   },
-  formatBtn: {
-    padding: 8,
+  messageInput: {
+    flex: 1,
+    minHeight: 40,
+    maxHeight: 100, // Limit height for multiline
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.sm,
+    borderColor: theme.colors.border.messaging,
+    borderWidth: 1,
+    borderRadius: theme.borderRadius.internal,
+    backgroundColor: theme.colors.secondary,
+    color: theme.colors.text.dark,
+    fontSize: 16,
+    textAlignVertical: 'top', // Align text to top for multiline
   },
   sendButton: {
     backgroundColor: theme.colors.primary,
-    padding: 8,
-    borderRadius: 20,
+    padding: theme.spacing.sm,
+    borderRadius: theme.borderRadius.button,
+    marginLeft: theme.spacing.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minWidth: 44, // Minimum touch target
+    minHeight: 44,
+    elevation: theme.elevation.sm, // Button elevation
   },
-  messageInput: {
-    height: 40,
-    padding: 8,
-    borderColor: theme.colors.border.messaging,
-    borderWidth: 1,
-    borderRadius: 10,
+  sendButtonDisabled: {
+    backgroundColor: theme.colors.border.messaging,
+    elevation: 0, // No elevation when disabled
+  },
+  formattingToolbar: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingVertical: theme.spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border.messaging,
+    backgroundColor: theme.colors.background.light,
+    elevation: theme.elevation.xs, // Toolbar elevation
+  },
+  formatBtn: {
+    padding: theme.spacing.sm,
+    borderRadius: theme.borderRadius.button,
+    minWidth: 36,
+    minHeight: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: theme.elevation.xs, // Format button elevation
   },
   linkModal: {
     backgroundColor: theme.colors.secondary,
-    padding: 16,
-    borderRadius: 10,
-    margin: 20,
+    padding: theme.spacing.lg,
+    borderRadius: theme.borderRadius.external,
+    margin: theme.spacing.lg,
+    elevation: theme.elevation.modal, // Modal elevation
   },
   linkInput: {
-    height: 40,
-    padding: 8,
+    height: 44,
+    padding: theme.spacing.sm,
     borderColor: theme.colors.border.messaging,
     borderWidth: 1,
-    borderRadius: 10,
+    borderRadius: theme.borderRadius.internal,
+    marginVertical: theme.spacing.sm,
+    backgroundColor: theme.colors.secondary,
+    color: theme.colors.text.dark,
   },
   linkModalButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginTop: theme.spacing.md,
   },
 });
 
