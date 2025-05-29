@@ -2,7 +2,7 @@ const express = require('express');
 const fs = require('fs');
 const https = require('https');
 const socketIo = require('socket.io');
-const mysql = require('mysql2/promise'); // Add MySQL for database operations
+const mysql = require('mysql2/promise');
 
 const http = require('http');
 const useHttps = process.env.USE_HTTPS === 'true';
@@ -12,8 +12,8 @@ const app = express();
 
 // SSL options
 const options = {
-    key: fs.readFileSync('/etc/letsencrypt/live/satya.pl/privkey.pem'),
-    cert: fs.readFileSync('/etc/letsencrypt/live/satya.pl/fullchain.pem')
+    key: fs.readFileSync('/etc/letsencrypt/live/new.satya.pl/privkey.pem'),
+    cert: fs.readFileSync('/etc/letsencrypt/live/new.satya.pl/fullchain.pem')
 };
 
 // Create  server
@@ -32,7 +32,7 @@ const io = socketIo(server, {
 // Database connection pool
 const pool = mysql.createPool({
     host: 'localhost',
-    user: 'duszyczkowo',
+    user: 'satya',
     password: 'i_still_walk_in_light',
     database: 'satya'
 });
