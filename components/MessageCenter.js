@@ -105,6 +105,14 @@ function MessageCenter() {
   };
 
   const openMessagingPopup = (userId, username, userPhoto) => {
+    console.log('Socket ready:', socket && socket.connected);
+    
+    // Log the data before sending
+    console.log('Sending data to create conversation:', {
+        currentUserId,
+        userId,
+    });
+    
     if (socket && currentUserId) {
       socket.emit('get_conversation', {
         current_user_id: currentUserId,

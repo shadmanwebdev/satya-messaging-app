@@ -5,7 +5,7 @@ const socketIo = require('socket.io');
 const mysql = require('mysql2/promise');
 
 const http = require('http');
-const useHttps = process.env.USE_HTTPS === 'true';
+// const useHttps = process.env.USE_HTTPS === 'true';
 
 // Create an instance of Express
 const app = express();
@@ -15,11 +15,11 @@ const options = {
     key: fs.readFileSync('/etc/letsencrypt/live/new.satya.pl/privkey.pem'),
     cert: fs.readFileSync('/etc/letsencrypt/live/new.satya.pl/fullchain.pem')
 };
-
+const server = https.createServer(options, app);
 // Create  server
-const server = useHttps
-    ? https.createServer(options, app)
-    : http.createServer(app);
+// const server = useHttps
+//     ? https.createServer(options, app)
+//     : http.createServer(app);
 
 // Socket.io
 const io = socketIo(server, {

@@ -29,7 +29,8 @@ export function WebSocketProvider({ children }) {
       // Get user ID from AsyncStorage
       const fetchUserId = async () => {
         try {
-          const userId = await AsyncStorage.getItem('user_id');
+          // const userId = await AsyncStorage.getItem('user_id');
+          const userId = 7;
           if (userId) {
             setCurrentUserId(userId);
             // Register user when connected
