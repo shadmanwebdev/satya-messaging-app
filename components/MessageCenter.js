@@ -106,6 +106,7 @@ function MessageCenter() {
 
   const openMessagingPopup = (userId, username, userPhoto) => {
     console.log('Socket ready:', socket && socket.connected);
+    console.log('User:', userId, username);
     
     // Log the data before sending
     console.log('Sending data to create conversation:', {
@@ -197,19 +198,31 @@ function MessageCenter() {
                 >
                   {/* Display conversations from search results or unread conversations */}
                   {displayedConversations.map((conversation) => {
+                    console.log(conversation);
                     let lastMessage = conversation.last_message || 'No messages yet';
                     lastMessage = truncateHTML(lastMessage, 30);
 
-                    const lastParticipant = conversation.participants?.[0] || {};
-                    const photoUrl = lastParticipant.photo?.startsWith('https://')
-                      ? lastParticipant.photo
+                    // const lastParticipant = conversation.participants?.[0] || {};
+                    // const photoUrl = lastParticipant.photo?.startsWith('https://')
+                    //   ? lastParticipant.photo
+                    //   : `https://satya.pl/serve_image.php?photo=${
+                    //       lastParticipant.photo || 'default.jpg'
+                    //     }`;
+
+                    // const userId = lastParticipant.user_id;
+                    // const username = lastParticipant.username;
+                    // const userPhoto = lastParticipant.photo;
+
+                                        // const lastParticipant = conversation.participants?.[0] || {};
+                    const photoUrl = conversation.last_sender_photo?.startsWith('https://')
+                      ? conversation.last_sender_photo
                       : `https://satya.pl/serve_image.php?photo=${
-                          lastParticipant.photo || 'default.jpg'
+                          conversation.last_sender_photo || 'default.jpg'
                         }`;
 
-                    const userId = lastParticipant.user_id;
-                    const username = lastParticipant.username;
-                    const userPhoto = lastParticipant.photo;
+                    const userId = conversation.last_sender_id;
+                    const username = conversation.last_sender_username;
+                    const userPhoto = conversation.last_sender_photo;
 
                     return (
                       <TouchableOpacity
