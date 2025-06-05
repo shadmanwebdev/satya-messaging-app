@@ -139,7 +139,7 @@ function ConversationTab({
 
 const styles = StyleSheet.create({
   container: {
-    width: 320,
+    // width: 320,
     height: '100%',
     backgroundColor: theme.colors.secondary,
     borderRadius: theme.borderRadius.external,

@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: theme.spacing.sm,
     paddingBottom: theme.spacing.md, // Extra bottom padding for last message
-    justifyContent: 'flex-end', // Align messages to bottom when few messages
+    justifyContent: 'flex-start', // Align messages to bottom when few messages
   },
 });
 

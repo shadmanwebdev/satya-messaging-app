@@ -16,6 +16,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import theme from '../theme/theme';
 
 function MessageCenter() {
+
   const [conversations, setConversations] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [notification, setNotification] = useState({ message: '', type: '' });
@@ -30,7 +31,14 @@ function MessageCenter() {
     unreadConversations,
     loadUnreadConversations,
   } = useWebSocket();
-
+  
+  useEffect(() => {
+    if (currentUserId && socket) {
+      console.log('Calling loadUnreadConversations!', currentUserId); // <--- add this
+      loadUnreadConversations();
+    }
+  }, [currentUserId, socket]);
+  
   useEffect(() => {
     if (socket) {
       // Listen for conversation creation
@@ -213,7 +221,7 @@ function MessageCenter() {
                     // const username = lastParticipant.username;
                     // const userPhoto = lastParticipant.photo;
 
-                                        // const lastParticipant = conversation.participants?.[0] || {};
+                                       
                     const photoUrl = conversation.last_sender_photo?.startsWith('https://')
                       ? conversation.last_sender_photo
                       : `https://satya.pl/serve_image.php?photo=${
@@ -316,6 +324,9 @@ function MessageCenter() {
 const styles = StyleSheet.create({
   messageCenter: {
     flex: 1,
+    width: '95%',
+    marginLeft: 'auto',
+    marginRight: 'auto',
   },
   messagesContainer: {
     flex: 1,
@@ -357,7 +368,6 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.xs,
   },
   unreadMessages: {
-    // Container for messages
   },
   searchUser: {
     marginBottom: theme.spacing.md,

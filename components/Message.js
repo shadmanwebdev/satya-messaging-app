@@ -5,6 +5,7 @@ import theme from '../theme/theme';
   
 function Message({ message, isCurrentUser }) {
   const messageStyle = isCurrentUser ? styles.sent : styles.received;
+  const messageBottomStyle = isCurrentUser ? styles.sentBottom : styles.receivedBottom;
   const messageTextStyle = isCurrentUser ? styles.sentText : styles.receivedText;
 
   return (
@@ -21,7 +22,7 @@ function Message({ message, isCurrentUser }) {
         </View>
       </View>
       <View style={styles.bottomRow}>
-        <View style={styles.messageColLeft}>
+        <View style={[styles.messageColLeft, messageBottomStyle]}>
           <View style={styles.messageTime}>
             <Text style={styles.timeText}>{formatTime(message.dateObj?.time)}</Text>
           </View>
@@ -37,23 +38,25 @@ function Message({ message, isCurrentUser }) {
 
 const styles = StyleSheet.create({
   message: {
-    marginVertical: theme.spacing.xs,
-    padding: theme.spacing.sm,
-    maxWidth: '80%',
+    width: '100%',
+    marginBottom: '10px',
   },
   sent: {
     alignSelf: 'flex-end',
-    backgroundColor: theme.colors.primary,
-    borderRadius: theme.borderRadius.external2,
-    elevation: theme.elevation.sm, // Added elevation for sent messages
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+    // backgroundColor: theme.colors.primary,
+    // borderRadius: theme.borderRadius.external2,
+    // elevation: theme.elevation.sm, // Added elevation for sent messages
   },
   received: {
     alignSelf: 'flex-start',
-    backgroundColor: theme.colors.secondary,
-    borderRadius: theme.borderRadius.external2,
-    borderWidth: 1,
-    borderColor: theme.colors.border.messaging,
-    elevation: theme.elevation.xs, // Added elevation for received messages
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+    // backgroundColor: theme.colors.secondary,
+    // borderRadius: theme.borderRadius.external2,
+    // borderColor: theme.colors.border.messaging,
+    // elevation: theme.elevation.xs, // Added elevation for received messages
   },
   topRow: {
     justifyContent: 'center',
@@ -84,7 +87,16 @@ const styles = StyleSheet.create({
   bottomRow: {
     // Container for message content
   },
+  receivedBottom: {
+    marginRight: 'auto',
+    // Container for message content
+  },
+  sentBottom: {
+    marginLeft: 'auto',
+    // Container for message content
+  },
   messageColLeft: {
+    width: '80%',
     // Container for time and content
   },
   messageTime: {
@@ -92,19 +104,29 @@ const styles = StyleSheet.create({
   },
   timeText: {
     fontSize: 10,
-    color: theme.colors.text.gray,
     fontStyle: 'italic',
   },
   messageContent: {
     fontSize: 14,
     lineHeight: 18,
-    paddingVertical: theme.spacing.xs,
   },
   sentText: {
+    marginVertical: theme.spacing.xs,
+    padding: theme.spacing.sm,
+    width: '100%',
+    backgroundColor: theme.colors.primary,
     color: theme.colors.secondary,
+    borderRadius: theme.borderRadius.external2,
+    borderColor: theme.colors.border.messaging,
   },
   receivedText: {
+    marginVertical: theme.spacing.xs,
+    padding: theme.spacing.sm,
+    width: '100%',
+    backgroundColor: theme.colors.secondary,
     color: theme.colors.text.dark,
+    borderRadius: theme.borderRadius.external2,
+    borderColor: theme.colors.border.messaging,
   },
 });
 
