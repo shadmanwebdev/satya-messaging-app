@@ -14,6 +14,7 @@ function ConversationTab({
   currentUserId,
   onClose,
   onMinimize,
+  hideHeader = false, // New prop to hide header
 }) {
   const [messages, setMessages] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
@@ -97,24 +98,28 @@ function ConversationTab({
 
   return (
     <View style={styles.container} id={`messaging-tab-${conversationId}`}>
-      <View style={styles.header}>
-        <Image
-          style={styles.avatar}
-          source={{
-            uri: userPhoto.startsWith('https://')
-              ? userPhoto
-              : `https://satya.pl/serve_image.php?photo=${userPhoto}`,
-          }}
-        />
-        <Text style={styles.username}>{username}</Text>
-        <TouchableOpacity onPress={handleMinimize} style={styles.minimizeButton}>
-          <FontAwesome name="window-minimize" size={20} color="black" />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-          <Ionicons name="close-outline" size={24} color="black" />
-        </TouchableOpacity>
-      </View>
-      <View style={styles.body}>
+      {/* Conditionally render header based on hideHeader prop */}
+      {!hideHeader && (
+        <View style={styles.header}>
+          <Image
+            style={styles.avatar}
+            source={{
+              uri: userPhoto.startsWith('https://')
+                ? userPhoto
+                : `https://satya.pl/serve_image.php?photo=${userPhoto}`,
+            }}
+          />
+          <Text style={styles.username}>{username}</Text>
+          <TouchableOpacity onPress={handleMinimize} style={styles.minimizeButton}>
+            <FontAwesome name="window-minimize" size={20} color="black" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+            <Ionicons name="close-outline" size={24} color="black" />
+          </TouchableOpacity>
+        </View>
+      )}
+      
+      <View style={[styles.body, hideHeader && styles.bodyWithoutHeader]}>
         <View style={styles.notificationContainer}>
           <View style={styles.notificationMessage}></View>
         </View>
@@ -139,12 +144,10 @@ function ConversationTab({
 
 const styles = StyleSheet.create({
   container: {
-    // width: 320,
     height: '100%',
     backgroundColor: theme.colors.secondary,
     borderRadius: theme.borderRadius.external,
-    padding: theme.spacing.sm,
-    elevation: theme.elevation.modal, // Added elevation for conversation tab shadow
+    elevation: theme.elevation.modal,
   },
   header: {
     flexDirection: 'row',
@@ -168,20 +171,25 @@ const styles = StyleSheet.create({
   minimizeButton: {
     marginLeft: 'auto',
     marginRight: theme.spacing.sm,
-    padding: theme.spacing.xs, // Added padding for better touch area
-    elevation: theme.elevation.xs, // Light elevation for button
+    padding: theme.spacing.xs,
+    elevation: theme.elevation.xs,
     backgroundColor: theme.colors.secondary,
     borderRadius: theme.borderRadius.external2,
   },
   closeButton: {
     marginRight: theme.spacing.sm,
-    padding: theme.spacing.xs, // Added padding for better touch area
-    elevation: theme.elevation.xs, // Light elevation for button
+    padding: theme.spacing.xs,
+    elevation: theme.elevation.xs,
     backgroundColor: theme.colors.secondary,
     borderRadius: theme.borderRadius.external2,
   },
   body: {
     flex: 1,
+    padding: theme.spacing.sm,
+  },
+  bodyWithoutHeader: {
+    // When header is hidden, we might want different padding
+    paddingTop: 0,
   },
   notificationContainer: {
     // Add styles here if needed
@@ -197,7 +205,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0f0f0',
     borderTopWidth: 1,
     borderTopColor: theme.colors.border.messaging,
-    elevation: theme.elevation.xs, // Added light elevation for typing indicator
+    elevation: theme.elevation.xs,
+    borderRadius: theme.borderRadius.external2,
+    marginTop: theme.spacing.xs,
   },
   minimizedTab: {
     flexDirection: 'row',
@@ -206,7 +216,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.secondary,
     padding: theme.spacing.sm,
     borderRadius: theme.borderRadius.external,
-    elevation: theme.elevation.card, // Added elevation for minimized tab
+    elevation: theme.elevation.card,
   },
   minimizedAvatar: {
     width: 24,
@@ -221,8 +231,8 @@ const styles = StyleSheet.create({
   },
   minimizedCloseButton: {
     marginLeft: 'auto',
-    padding: theme.spacing.xs, // Added padding for better touch area
-    elevation: theme.elevation.xs, // Light elevation for button
+    padding: theme.spacing.xs,
+    elevation: theme.elevation.xs,
     backgroundColor: theme.colors.secondary,
     borderRadius: theme.borderRadius.external2,
   },

@@ -5,7 +5,6 @@ const socketIo = require('socket.io');
 const mysql = require('mysql2/promise');
 
 const http = require('http');
-// const useHttps = process.env.USE_HTTPS === 'true';
 
 // Create an instance of Express
 const app = express();
@@ -16,17 +15,26 @@ const options = {
     cert: fs.readFileSync('/etc/letsencrypt/live/new.satya.pl/fullchain.pem')
 };
 const server = https.createServer(options, app);
-// Create  server
-// const server = useHttps
-//     ? https.createServer(options, app)
-//     : http.createServer(app);
 
-// Socket.io
-const io = socketIo(server, {
-    cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
+// *** MIDDLEWARE MUST BE HERE - BEFORE WEBSOCKET SETUP ***
+
+// Middleware for parsing JSON
+app.use(express.json());
+
+// Enable CORS for your React Native app
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    
+    // Handle preflight OPTIONS requests
+    if (req.method === 'OPTIONS') {
+        console.log('OPTIONS preflight request for:', req.url);
+        return res.status(200).end();
     }
+    
+    console.log(`${req.method} ${req.url}`);
+    next();
 });
 
 // Database connection pool
@@ -35,6 +43,83 @@ const pool = mysql.createPool({
     user: 'satya',
     password: 'i_still_walk_in_light',
     database: 'satya'
+});
+// Simple test endpoint
+app.get('/api/test', (req, res) => {
+    console.log('Test endpoint called');
+    res.json({ message: 'Server is working!', timestamp: new Date().toISOString() });
+});
+// *** API ROUTES MUST BE HERE - BEFORE WEBSOCKET SETUP ***
+
+// Profile API endpoint
+app.get('/api/profile/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        console.log('Profile API called for user:', userId);
+        
+        // Validate userId
+        if (!userId || isNaN(userId)) {
+            console.log('Invalid user ID provided:', userId);
+            return res.status(400).json({ error: 'Invalid user ID' });
+        }
+        
+        const connection = await pool.getConnection();
+        
+        // Get user profile data
+        const [userRows] = await connection.execute(`
+            SELECT 
+                user_id,
+                username,
+                fname,
+                lname,
+                email,
+                phone,
+                photo,
+                bio
+            FROM users 
+            WHERE user_id = ?
+        `, [userId]);
+        
+        connection.release();
+        
+        console.log('Database query result for user', userId, ':', userRows);
+        
+        if (userRows.length === 0) {
+            console.log('User not found in database:', userId);
+            return res.status(404).json({ error: 'User not found' });
+        }
+        
+        const user = userRows[0];
+        
+        // Return user data
+        const response = {
+            user_id: user.user_id,
+            username: user.username,
+            fname: user.fname,
+            lname: user.lname,
+            email: user.email,
+            phone: user.phone,
+            photo: user.photo,
+            bio: user.bio
+        };
+        
+        console.log('Sending response:', response);
+        res.json(response);
+        
+    } catch (error) {
+        console.error('Error fetching user profile:', error);
+        res.status(500).json({ error: 'Internal server error', details: error.message });
+    }
+});
+
+// *** WEBSOCKET SETUP COMES AFTER API ROUTES ***
+
+// Socket.io
+const io = socketIo(server, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    }
 });
 
 // Store user socket IDs

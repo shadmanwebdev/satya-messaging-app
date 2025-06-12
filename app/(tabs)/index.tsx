@@ -1,29 +1,22 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { WebSocketProvider } from '../../contexts/WebSocketContext';
+import MessageCenter from '../../components/MessageCenter';
 
-export default function HomeScreen() {
+function App() {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Home Screen</Text>
-      <Text style={styles.subtitle}>Welcome to the Home tab!</Text>
-    </View>
+    <WebSocketProvider>
+      <View style={styles.app}>
+        <MessageCenter />
+      </View>
+    </WebSocketProvider>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  app: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
   },
 });
+
+export default App;
