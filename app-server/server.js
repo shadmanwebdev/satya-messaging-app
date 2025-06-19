@@ -44,11 +44,13 @@ const pool = mysql.createPool({
     password: 'i_still_walk_in_light',
     database: 'satya'
 });
+
 // Simple test endpoint
 app.get('/api/test', (req, res) => {
     console.log('Test endpoint called');
     res.json({ message: 'Server is working!', timestamp: new Date().toISOString() });
 });
+
 // *** API ROUTES MUST BE HERE - BEFORE WEBSOCKET SETUP ***
 
 // Profile API endpoint
@@ -135,12 +137,174 @@ io.on('connection', async (socket) => {
         console.log(`User ${user_id} registered with socket ID ${socket.id}`);
     });
 
-    // Get or create conversation
-    socket.on('get_conversation', async (data) => {
+    // User search handler - NEW ADDITION
+    socket.on('search_users', async (data) => {
         try {
+            const { user_id, search_term } = data;
+            
+            if (!user_id || !search_term || search_term.length < 3) {
+                socket.emit('search_results', {
+                    success: false,
+                    error: 'Invalid search parameters'
+                });
+                return;
+            }
+            
             const connection = await pool.getConnection();
             
+            // Format search term for LIKE query
+            const formattedSearchTerm = `%${search_term}%`;
+            
+            // Query to get conversations matching the search term
+            const [conversations] = await connection.execute(`
+                SELECT 
+                    c.conversation_id,
+                    u.username,
+                    u.email,
+                    u.user_id,
+                    u.photo,
+                    COUNT(CASE WHEN m.is_read = 0 AND m.sender_id != ? THEN 1 END) AS unread_count,
+                    (
+                        SELECT m_last.content
+                        FROM Messages m_last
+                        WHERE m_last.conversation_id = c.conversation_id
+                        ORDER BY m_last.sent_at DESC
+                        LIMIT 1
+                    ) AS last_message,
+                    (
+                        SELECT m_last.sender_id
+                        FROM Messages m_last
+                        WHERE m_last.conversation_id = c.conversation_id
+                        ORDER BY m_last.sent_at DESC
+                        LIMIT 1
+                    ) AS last_sender_id,
+                    u.username AS last_sender_username,
+                    u.photo AS last_sender_photo
+                FROM Conversations c
+                JOIN ConversationParticipants cp ON c.conversation_id = cp.conversation_id
+                JOIN ConversationParticipants cp2 ON c.conversation_id = cp2.conversation_id
+                JOIN users u ON cp2.user_id = u.user_id
+                LEFT JOIN Messages m ON c.conversation_id = m.conversation_id
+                WHERE cp.user_id = ?
+                    AND cp2.user_id != ?
+                    AND (u.username LIKE ? OR u.email LIKE ?)
+                GROUP BY c.conversation_id, u.username, u.user_id, u.photo
+                ORDER BY c.updated_at DESC
+            `, [user_id, user_id, user_id, formattedSearchTerm, formattedSearchTerm]);
+            
+            console.log('Search conversations found:', conversations.length);
+            if (conversations.length > 0) {
+                console.log('First conversation photo:', conversations[0].photo);
+            }
+            
+            // Query to get users who are NOT in a conversation with the current user
+            const [newUsers] = await connection.execute(`
+                SELECT u.user_id, u.username, u.email, u.photo
+                FROM users u
+                WHERE (u.username LIKE ? OR u.email LIKE ?)
+                    AND u.user_id != ?
+                    AND u.user_id NOT IN (
+                        SELECT cp2.user_id
+                        FROM ConversationParticipants cp
+                        JOIN ConversationParticipants cp2 ON cp.conversation_id = cp2.conversation_id
+                        WHERE cp.user_id = ? AND cp2.user_id != ?
+                    )
+                LIMIT 10
+            `, [formattedSearchTerm, formattedSearchTerm, user_id, user_id, user_id]);
+            
+            connection.release();
+            
+            // Send search results back to client
+            socket.emit('search_results', {
+                success: true,
+                conversations: conversations,
+                newUsers: newUsers
+            });
+            console.log('Search results - Conversations: ', conversations.length, 'New Users: ', newUsers.length);
+            
+        } catch (error) {
+            console.error('Search error:', error);
+            socket.emit('search_results', {
+                success: false,
+                error: 'Failed to search users'
+            });
+        }
+    });
+
+    // Get or create conversation
+    socket.on('get_conversation', async (data) => {
+        let connection;
+        try {
+            console.log('=== GET_CONVERSATION START ===');
+            console.log('Received data:', JSON.stringify(data, null, 2));
+            
+            // Validate input data
+            if (!data.current_user_id || !data.recipient_id) {
+                console.error('❌ Missing required data:', data);
+                socket.emit('conversation_created', {
+                    success: false,
+                    error: 'Missing required user data'
+                });
+                return;
+            }
+
+            // Convert to numbers to ensure proper comparison
+            const currentUserId = parseInt(data.current_user_id);
+            const recipientId = parseInt(data.recipient_id);
+            
+            console.log('✅ Parsed user IDs:', { currentUserId, recipientId });
+            
+            // Check if trying to create conversation with self
+            if (currentUserId === recipientId) {
+                console.error('❌ Cannot create conversation with self');
+                socket.emit('conversation_created', {
+                    success: false,
+                    error: 'Cannot create conversation with yourself'
+                });
+                return;
+            }
+            
+            connection = await pool.getConnection();
+            console.log('✅ Database connection established');
+            
+            // First, verify both users exist
+            const [currentUserCheck] = await connection.execute(
+                'SELECT user_id, username FROM users WHERE user_id = ?',
+                [currentUserId]
+            );
+            
+            const [recipientUserCheck] = await connection.execute(
+                'SELECT user_id, username FROM users WHERE user_id = ?',
+                [recipientId]
+            );
+            
+            console.log('Current user check:', currentUserCheck);
+            console.log('Recipient user check:', recipientUserCheck);
+            
+            if (currentUserCheck.length === 0) {
+                console.error('❌ Current user not found:', currentUserId);
+                connection.release();
+                socket.emit('conversation_created', {
+                    success: false,
+                    error: 'Current user not found in database'
+                });
+                return;
+            }
+            
+            if (recipientUserCheck.length === 0) {
+                console.error('❌ Recipient user not found:', recipientId);
+                connection.release();
+                socket.emit('conversation_created', {
+                    success: false,
+                    error: 'Recipient user not found in database'
+                });
+                return;
+            }
+            
+            console.log('✅ Both users exist in database');
+            
             // Check if a conversation exists between these users
+            console.log('🔍 Checking for existing conversation...');
             const [existingConversations] = await connection.execute(`
                 SELECT c.conversation_id 
                 FROM Conversations c
@@ -148,52 +312,94 @@ io.on('connection', async (socket) => {
                 JOIN ConversationParticipants cp2 ON c.conversation_id = cp2.conversation_id
                 WHERE cp1.user_id = ? AND cp2.user_id = ?
                 AND (SELECT COUNT(*) FROM ConversationParticipants WHERE conversation_id = c.conversation_id) = 2
-            `, [data.current_user_id, data.recipient_id]);
+            `, [currentUserId, recipientId]);
+            
+            console.log('Existing conversations found:', existingConversations.length);
             
             let conversation_id;
             
             if (existingConversations.length === 0) {
-                // Create new conversation
-                const [result] = await connection.execute(
-                    'INSERT INTO Conversations (created_at) VALUES (NOW())'
-                );
-                conversation_id = result.insertId;
+                console.log('📝 Creating new conversation...');
                 
-                // Add participants
-                await connection.execute(
-                    'INSERT INTO ConversationParticipants (conversation_id, user_id) VALUES (?, ?)',
-                    [conversation_id, data.current_user_id]
-                );
-                await connection.execute(
-                    'INSERT INTO ConversationParticipants (conversation_id, user_id) VALUES (?, ?)',
-                    [conversation_id, data.recipient_id]
-                );
+                try {
+                    // Create new conversation
+                    const [result] = await connection.execute(
+                        'INSERT INTO Conversations (created_at, updated_at) VALUES (NOW(), NOW())'
+                    );
+                    conversation_id = result.insertId;
+                    console.log('✅ New conversation created with ID:', conversation_id);
+                    
+                    // Add current user as participant
+                    console.log('👤 Adding current user as participant...');
+                    await connection.execute(
+                        'INSERT INTO ConversationParticipants (conversation_id, user_id) VALUES (?, ?)',
+                        [conversation_id, currentUserId]
+                    );
+                    console.log('✅ Current user added as participant');
+                    
+                    // Add recipient as participant
+                    console.log('👤 Adding recipient as participant...');
+                    await connection.execute(
+                        'INSERT INTO ConversationParticipants (conversation_id, user_id) VALUES (?, ?)',
+                        [conversation_id, recipientId]
+                    );
+                    console.log('✅ Recipient added as participant');
+                    
+                } catch (createError) {
+                    console.error('❌ Error creating conversation or participants:', createError);
+                    connection.release();
+                    socket.emit('conversation_created', {
+                        success: false,
+                        error: `Database error during conversation creation: ${createError.message}`
+                    });
+                    return;
+                }
             } else {
                 conversation_id = existingConversations[0].conversation_id;
+                console.log('✅ Using existing conversation ID:', conversation_id);
             }
             
-            // Get recipient info
+            // Get recipient info from database
+            console.log('📋 Getting recipient info...');
             const [userInfo] = await connection.execute(
-                'SELECT username, photo FROM users WHERE user_id = ?',
-                [data.recipient_id]
+                'SELECT user_id, username, photo FROM users WHERE user_id = ?',
+                [recipientId]
             );
             
-            connection.release();
+            console.log('Recipient info retrieved:', userInfo);
             
-            // Send response back to client
-            socket.emit('conversation_created', {
+            connection.release();
+            console.log('✅ Database connection released');
+            
+            const responseData = {
                 success: true,
                 conversation_id: conversation_id,
-                username: userInfo[0].username,
-                user_photo: userInfo[0].photo
-            });
+                recipient_username: userInfo[0].username,
+                recipient_photo: userInfo[0].photo,
+                username: userInfo[0].username, // For backward compatibility
+                user_photo: userInfo[0].photo   // For backward compatibility
+            };
+            
+            console.log('📤 Sending response:', JSON.stringify(responseData, null, 2));
+            console.log('=== GET_CONVERSATION SUCCESS ===');
+            
+            // Send response back to client
+            socket.emit('conversation_created', responseData);
             
         } catch (error) {
-            console.error('Database error:', error);
+            console.error('❌ CRITICAL ERROR in get_conversation:', error);
+            console.error('Error stack:', error.stack);
+            
+            if (connection) {
+                connection.release();
+                console.log('🔄 Connection released after error');
+            }
+            
             socket.emit('conversation_created', {
                 success: false,
-                error: 'Failed to create conversation'
+                error: `Server error: ${error.message}`
             });
+            console.log('=== GET_CONVERSATION FAILED ===');
         }
     });
 
@@ -382,7 +588,82 @@ io.on('connection', async (socket) => {
             console.error(err);
         }
     });
-
+    
+socket.on('getAllConversations', async (user_id) => {
+    try {
+        console.log('🔍 Getting all conversations for user:', user_id);
+        const connection = await pool.getConnection();
+        
+        // Get all conversations for the user
+        const [conversations] = await connection.execute(`
+            SELECT DISTINCT
+                c.conversation_id,
+                c.updated_at,
+                -- Count unread messages
+                (
+                    SELECT COUNT(*)
+                    FROM Messages m_count
+                    WHERE m_count.conversation_id = c.conversation_id 
+                    AND m_count.sender_id != ? 
+                    AND m_count.is_read = 0
+                ) AS unread_count,
+                
+                -- Get last message
+                (
+                    SELECT m_last.content
+                    FROM Messages m_last
+                    WHERE m_last.conversation_id = c.conversation_id
+                    ORDER BY m_last.sent_at DESC
+                    LIMIT 1
+                ) AS last_message
+                
+            FROM Conversations c
+            JOIN ConversationParticipants cp ON cp.conversation_id = c.conversation_id
+            WHERE cp.user_id = ?
+            AND EXISTS (
+                SELECT 1 FROM Messages m_exists 
+                WHERE m_exists.conversation_id = c.conversation_id
+            )
+            ORDER BY c.updated_at DESC
+        `, [user_id, user_id]);
+        
+        console.log(`📬 Found ${conversations.length} total conversations`);
+        
+        // Now for each conversation, get the other participant
+        const conversationsWithParticipants = [];
+        
+        for (const conv of conversations) {
+            // Get the other participant for this conversation
+            const [participants] = await connection.execute(`
+                SELECT u.user_id, u.username, u.photo
+                FROM ConversationParticipants cp
+                JOIN users u ON u.user_id = cp.user_id
+                WHERE cp.conversation_id = ? AND cp.user_id != ?
+                LIMIT 1
+            `, [conv.conversation_id, user_id]);
+            
+            if (participants.length > 0) {
+                const participant = participants[0];
+                
+                conversationsWithParticipants.push({
+                    ...conv,
+                    other_user_id: participant.user_id,
+                    other_username: participant.username,
+                    other_photo: participant.photo
+                });
+            }
+        }
+        
+        console.log(`📤 Sending ${conversationsWithParticipants.length} total conversations with participant data`);
+        
+        connection.release();
+        socket.emit('allConversations', { conversations: conversationsWithParticipants });
+    } catch (err) {
+        console.error('❌ Error fetching all conversations:', err);
+        socket.emit('allConversations', { conversations: [] });
+    }
+});
+    
     socket.on('getConversationParticipants', async ({ conversation_id }) => {
         try {
             const connection = await pool.getConnection();

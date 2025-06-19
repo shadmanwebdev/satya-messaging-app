@@ -9,10 +9,10 @@ import {
   ScrollView,
 } from 'react-native';
 import ConversationTab from './ConversationTab';
+import ConversationToggleCustom from './ConversationToggleCustom'; // ✅ FIXED: Import from correct file
 import { useWebSocket } from '../contexts/WebSocketContext';
 import Notification from './Notification';
 import { truncateHTML } from '../utils/messageUtils';
-import { FontAwesome } from '@expo/vector-icons';
 import { Ionicons } from '@expo/vector-icons';
 import theme from '../theme/theme';
 
@@ -21,6 +21,7 @@ function MessageCenter() {
   const [notification, setNotification] = useState({ message: '', type: '' });
   const [searchResults, setSearchResults] = useState({ conversations: [], newUsers: [] });
   const [searchTerm, setSearchTerm] = useState('');
+  const [showAllConversations, setShowAllConversations] = useState(false); // NEW: Toggle state
   const searchTimeout = useRef(null);
 
   const {
@@ -28,15 +29,26 @@ function MessageCenter() {
     currentUserId,
     unreadCount,
     unreadConversations,
+    allConversations, // NEW: Get all conversations
     loadUnreadConversations,
+    loadAllConversations, // NEW: Load all conversations function
   } = useWebSocket();
   
   useEffect(() => {
     if (currentUserId && socket) {
-      console.log('Calling loadUnreadConversations!', currentUserId);
+      console.log('🚀 Loading conversations for user:', currentUserId);
       loadUnreadConversations();
+      loadAllConversations(); // NEW: Load all conversations on mount
     }
   }, [currentUserId, socket]);
+  
+  // Add debugging for conversation data
+  useEffect(() => {
+    console.log('📊 Conversation data updated:');
+    console.log('- Unread conversations:', unreadConversations.length, unreadConversations);
+    console.log('- All conversations:', allConversations.length, allConversations);
+    console.log('- Show all toggle:', showAllConversations);
+  }, [unreadConversations, allConversations, showAllConversations]);
   
   useEffect(() => {
     if (socket) {
@@ -44,10 +56,11 @@ function MessageCenter() {
       const conversationCreatedHandler = (response) => {
         console.log('Conversation created response:', response);
         if (response.success) {
-          // Open the conversation directly
+          console.log('Successfully created/loaded conversation:', response.conversation_id);
           setActiveConversation(response);
         } else {
-          showNotification('Failed to load conversation', 'error');
+          console.error('Failed to load conversation:', response.error);
+          showNotification(`Failed to load conversation: ${response.error || 'Unknown error'}`, 'error');
         }
       };
 
@@ -60,6 +73,7 @@ function MessageCenter() {
             newUsers: response.newUsers || [],
           });
         } else {
+          console.error('Search failed:', response.error);
           showNotification('Failed to search users', 'error');
         }
       };
@@ -78,14 +92,11 @@ function MessageCenter() {
     const query = text.trim();
     setSearchTerm(query);
 
-    // Clear any existing timeout
     if (searchTimeout.current) {
       clearTimeout(searchTimeout.current);
     }
 
-    // Only search if query is at least 3 characters
     if (query.length >= 3) {
-      // Debounce the search request
       searchTimeout.current = setTimeout(() => {
         if (socket && currentUserId) {
           console.log('Sending search request: ', query, 'by: ', currentUserId);
@@ -96,19 +107,40 @@ function MessageCenter() {
         }
       }, 300);
     } else if (query.length === 0) {
-      // If search field is cleared, reset to unread conversations
+      setSearchResults({ conversations: [], newUsers: [] });
+      // Refresh current view
+      if (showAllConversations) {
+        loadAllConversations();
+      } else {
+        loadUnreadConversations();
+      }
+    }
+  };
+
+  // NEW: Handle toggle change
+  const handleToggleChange = (showAll) => {
+    setShowAllConversations(showAll);
+    setSearchTerm(''); // Clear search when toggling
+    setSearchResults({ conversations: [], newUsers: [] });
+    
+    // Load appropriate conversations
+    if (showAll) {
+      loadAllConversations();
+    } else {
       loadUnreadConversations();
     }
   };
 
   const openMessagingPopup = (userId, username, userPhoto) => {
     console.log('Socket ready:', socket && socket.connected);
-    console.log('User:', userId, username);
+    console.log('Opening conversation with user:', { userId, username, userPhoto });
     
     // Log the data before sending
     console.log('Sending data to create conversation:', {
-        currentUserId,
-        userId,
+        current_user_id: currentUserId,
+        recipient_id: userId,
+        recipient_username: username,
+        recipient_photo: userPhoto,
     });
     
     if (socket && currentUserId) {
@@ -118,13 +150,23 @@ function MessageCenter() {
         recipient_username: username,
         recipient_photo: userPhoto,
       });
+    } else {
+      console.error('Socket not connected or currentUserId missing:', { socket: !!socket, currentUserId });
+      showNotification('Connection error. Please try again.', 'error');
     }
   };
 
   const closeConversation = () => {
     setActiveConversation(null);
-    // Refresh the conversation list when returning
-    loadUnreadConversations();
+    setSearchTerm('');
+    setSearchResults({ conversations: [], newUsers: [] });
+    
+    // Refresh current view
+    if (showAllConversations) {
+      loadAllConversations();
+    } else {
+      loadUnreadConversations();
+    }
   };
 
   const showNotification = (message, type) => {
@@ -132,10 +174,15 @@ function MessageCenter() {
     setTimeout(() => setNotification({ message: '', type: '' }), 3000);
   };
 
-  // Get displayed users (from search or unread conversations)
-  const displayedConversations =
-    searchTerm.length >= 3 ? searchResults.conversations : unreadConversations;
+  // NEW: Get displayed conversations based on toggle and search
+  const getDisplayedConversations = () => {
+    if (searchTerm.length >= 3) {
+      return searchResults.conversations;
+    }
+    return showAllConversations ? allConversations : unreadConversations;
+  };
 
+  const displayedConversations = getDisplayedConversations();
   const displayedNewUsers = searchTerm.length >= 3 ? searchResults.newUsers : [];
 
   // Render conversation view
@@ -166,7 +213,8 @@ function MessageCenter() {
             userPhoto={activeConversation.recipient_photo || activeConversation.user_photo}
             currentUserId={currentUserId}
             onClose={closeConversation}
-            hideHeader={true} // Add this prop to hide the header in ConversationTab
+            onMinimize={() => {}} // Required prop but not used in this context
+            hideHeader={true}
           />
         </View>
 
@@ -181,60 +229,77 @@ function MessageCenter() {
   return (
     <View style={styles.messageCenter}>
       <View style={styles.messagesContainer}>
-        <View style={styles.conversationsHeader}>
-          <Image
-            style={styles.avatar}
-            source={{
-              uri: 'https://satya.pl/serve_image.php?photo=Lukrecja_bae1734781188.png',
-            }}
-          />
-          <Text style={styles.conversationsHeaderText}>
-            {unreadCount > 0
-              ? `${unreadCount} unread message(s)`
-              : 'Messages'}
-          </Text>
+        
+        {/* NEW: Add toggle component */}
+        <ConversationToggleCustom
+          showUnreadOnly={!showAllConversations} 
+          onToggle={(newShowUnreadOnly) => {  
+            handleToggleChange(!newShowUnreadOnly);
+          }}
+          unreadCount={unreadConversations.length}
+          allCount={allConversations.length}
+        />
+        
+        {/* Search header */}
+        <View style={styles.searchHeader}>
+          <View style={styles.searchBar}>
+            <Ionicons name="search" size={20} color="#666" />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search username or email..."
+              value={searchTerm}
+              onChangeText={handleSearch}
+              placeholderTextColor="#666"
+            />
+          </View>
         </View>
         
         <View style={styles.messagesList}>
-          <View style={styles.searchUser}>
-            <View style={styles.searchUserInner}>
-              <TextInput
-                style={styles.userSearch}
-                placeholder="Search username or email..."
-                value={searchTerm}
-                onChangeText={handleSearch}
-                placeholderTextColor={theme.colors.text.gray3}
-              />
-              <FontAwesome 
-                name="search" 
-                size={20} 
-                color={theme.colors.text.gray2}
-                style={styles.searchIcon} 
-              />
-            </View>
-          </View>
-
           <ScrollView 
             style={styles.conversationsScrollView}
             showsVerticalScrollIndicator={true}
             persistentScrollbar={true}
             keyboardShouldPersistTaps="handled"
           >
-            {/* Display conversations from search results or unread conversations */}
+            {/* Display conversations */}
             {displayedConversations.map((conversation) => {
-              console.log(conversation);
+              console.log('🔍 Rendering conversation:', conversation);
               let lastMessage = conversation.last_message || 'No messages yet';
               lastMessage = truncateHTML(lastMessage, 30);
 
-              const photoUrl = conversation.last_sender_photo?.startsWith('https://')
-                ? conversation.last_sender_photo
-                : `https://satya.pl/serve_image.php?photo=${
-                    conversation.last_sender_photo || 'default.jpg'
-                  }`;
+              const isSearchResult = searchTerm.length >= 3;
+              
+              let userId, username, userPhoto;
+              if (isSearchResult) {
+                // For search results - use the user we found
+                userId = conversation.user_id;
+                username = conversation.username;
+                userPhoto = conversation.photo;
+              } else {
+                // For both unread and all conversations - use the OTHER participant
+                // Try new field names first, fallback to old ones
+                userId = conversation.other_user_id || conversation.last_sender_id;
+                username = conversation.other_username || conversation.last_sender_username;
+                userPhoto = conversation.other_photo || conversation.last_sender_photo;
+              }
 
-              const userId = conversation.last_sender_id;
-              const username = conversation.last_sender_username;
-              const userPhoto = conversation.last_sender_photo;
+              // Debug: Check if we have valid data
+              if (!userId || !username) {
+                console.error('❌ Invalid conversation data:', {
+                  conversation,
+                  userId,
+                  username,
+                  userPhoto,
+                  isSearchResult
+                });
+                return null; // Skip this conversation if data is invalid
+              }
+
+              console.log('✅ Valid conversation:', { userId, username, userPhoto });
+
+              const photoUrl = (userPhoto && userPhoto.startsWith('https://'))
+                ? userPhoto
+                : `https://satya.pl/serve_image.php?photo=${userPhoto || 'default.jpg'}`;
 
               return (
                 <TouchableOpacity
@@ -254,7 +319,7 @@ function MessageCenter() {
                     <View style={styles.msgContent}>
                       <Text style={styles.conversationUsername}>{username}</Text>
                       <Text style={styles.lastMessage} numberOfLines={2}>
-                        {lastMessage.replace(/<[^>]*>/g, '')} {/* Strip HTML tags */}
+                        {lastMessage.replace(/<[^>]*>/g, '')}
                       </Text>
                     </View>
                     {conversation.unread_count > 0 && (
@@ -267,7 +332,7 @@ function MessageCenter() {
                   </View>
                 </TouchableOpacity>
               );
-            })}
+            }).filter(Boolean)} {/* Filter out null results */}
 
             {/* Display new users from search */}
             {displayedNewUsers.map((user) => (
@@ -280,7 +345,7 @@ function MessageCenter() {
                   <View style={styles.msgPhoto}>
                     <Image
                       source={{
-                        uri: user.photo.startsWith('https://')
+                        uri: user.photo?.startsWith('https://')
                           ? user.photo
                           : `https://satya.pl/serve_image.php?photo=${user.photo || 'default.jpg'}`,
                       }}
@@ -296,6 +361,22 @@ function MessageCenter() {
                 </View>
               </TouchableOpacity>
             ))}
+
+            {/* Show message when no results found */}
+            {searchTerm.length >= 3 && displayedConversations.length === 0 && displayedNewUsers.length === 0 && (
+              <View style={styles.noResultsContainer}>
+                <Text style={styles.noResultsText}>No users found matching "{searchTerm}"</Text>
+              </View>
+            )}
+
+            {/* Show message when no conversations available */}
+            {searchTerm.length < 3 && displayedConversations.length === 0 && (
+              <View style={styles.noResultsContainer}>
+                <Text style={styles.noResultsText}>
+                  {showAllConversations ? 'No conversations yet' : 'No unread messages'}
+                </Text>
+              </View>
+            )}
           </ScrollView>
         </View>
       </View>
@@ -307,6 +388,7 @@ function MessageCenter() {
   );
 }
 
+// Styles remain the same as before
 const styles = StyleSheet.create({
   messageCenter: {
     flex: 1,
@@ -340,33 +422,28 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: 25,
   },
+  searchHeader: {
+    padding: 16,
+    backgroundColor: theme.colors.secondary,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    height: 40,
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 16,
+    color: '#000',
+  },
   messagesList: {
     flex: 1,
     backgroundColor: theme.colors.secondary,
     padding: theme.spacing.md,
-  },
-  searchUser: {
-    marginBottom: theme.spacing.md,
-  },
-  searchUserInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: theme.spacing.sm,
-    borderColor: theme.colors.border.primary,
-    borderWidth: 1,
-    borderRadius: theme.borderRadius.external2,
-    backgroundColor: theme.colors.background.gray,
-    elevation: theme.elevation.xs,
-  },
-  userSearch: {
-    flex: 1,
-    height: 40,
-    paddingHorizontal: theme.spacing.sm,
-    fontSize: 16,
-    color: theme.colors.text.dark,
-  },
-  searchIcon: {
-    marginLeft: theme.spacing.sm,
   },
   conversationsScrollView: {
     flex: 1,
@@ -385,9 +462,7 @@ const styles = StyleSheet.create({
   msgCol1: {
     marginRight: theme.spacing.md,
   },
-  msgPhoto: {
-    // Photo container
-  },
+  msgPhoto: {},
   msgColRight: {
     flex: 1,
     flexDirection: 'row',
@@ -422,7 +497,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
   },
-  // Conversation view styles
   conversationHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -450,6 +524,15 @@ const styles = StyleSheet.create({
   },
   conversationContainer: {
     flex: 1,
+  },
+  noResultsContainer: {
+    padding: theme.spacing.lg,
+    alignItems: 'center',
+  },
+  noResultsText: {
+    fontSize: 16,
+    color: theme.colors.text.gray2,
+    textAlign: 'center',
   },
 });
 

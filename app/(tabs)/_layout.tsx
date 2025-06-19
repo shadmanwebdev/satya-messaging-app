@@ -68,17 +68,7 @@ export default function TabLayout() {
     <Tabs
       tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{
-        headerStyle: {
-          backgroundColor: '#fff',
-          borderBottomWidth: 1,
-          borderBottomColor: '#f0f0f0',
-        },
-        headerTitleStyle: {
-          fontSize: 20,
-          fontWeight: 'bold',
-          color: '#000',
-        },
-        headerTitle: 'Satya',
+        headerShown: false,
       }}>
       <Tabs.Screen
         name="index"
